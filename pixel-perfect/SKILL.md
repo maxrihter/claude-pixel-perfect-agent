@@ -24,8 +24,6 @@ Systematic manual audit of a live web application against a design system (brand
 
 **Core strength:** Catches what automated tools cannot — wrong font-weight (600 vs 700), colors close but not matching the palette (#8B9DAD vs #8996A3), dropdown overflow bugs, typography outside the type scale, cross-component inconsistencies. Requires a brandbook as source of truth.
 
-> **Not this skill?** For automated CI screenshot comparison, use a visual regression testing skill. For browser interaction testing, use a Playwright-based skill. For a single screenshot, use a screenshots skill.
-
 ---
 
 ## Tool Quick Reference
@@ -41,7 +39,7 @@ Every action in this audit maps to a specific Chrome MCP tool. **This skill requ
 | Navigate to URL | `navigate` | Requires `url` + `tabId`. Supports `"back"`/`"forward"` |
 | Discover page structure | `read_page` | Accessibility tree with `ref` IDs. Params: `tabId` (required), `filter` (`"interactive"`), `depth`, `ref_id` (subtree), `max_chars` (default 50000) |
 | Find elements by purpose | `find` | Natural language query + `tabId`. Returns max 20 matches |
-| Measure CSS properties | `javascript_tool` | `action: "javascript_exec"` + `text` + `tabId` |
+| Measure CSS properties | `javascript_tool` | See critical note above |
 | Extract all page text | `get_page_text` | Quick text inventory for typography audit |
 | Take viewport screenshot | `computer` | `action: "screenshot"` + `tabId` (no coordinate needed) |
 | Click elements | `computer` | `action: "left_click"` + `coordinate: [x,y]` or `ref` + `tabId` |
@@ -97,7 +95,6 @@ Call `read_page` to confirm rendering. If output exceeds limit, reduce `depth` o
 ### Step 5: Handle authentication (if needed)
 - Inform user, ask them to log in manually in the browser
 - **HTTP Basic Auth** (browser-native popups): cannot be interacted with via MCP — ask user to enter directly
-- Never enter credentials on behalf of the user
 
 ### SPA / Client-side routing
 - Use `navigate` for full URL changes; `computer` (left_click) for internal links (preserves app state)
@@ -177,8 +174,6 @@ For 5+ page sites, maintain a progress log. If context runs low, summarize compl
 
 **Session handoff:** When splitting across sessions, export: completed pages + bug counts, component registry, systemic issues, design token tables.
 
-> **CRITICAL: Never assume visible items are all items.** Always verify via JS: `scrollHeight > clientHeight`, `querySelectorAll().length`.
-
 ---
 
 ## Phase 4: Component Grouping
@@ -236,12 +231,10 @@ For every text element, measure via `javascript_tool`:
 - **Width constraints:** `maxWidth`, `minWidth`
 
 ### 5.6 Interactive state audit
-- **Open each** dropdown/modal/tooltip via `computer` (left_click)
 - **Hover:** `computer` (hover, coordinate), then immediately screenshot/measure
 - **Focus:** `computer` (left_click) on inputs — check outline, border changes
 - **Wait for transitions:** `computer` (wait, duration: 1) before measuring if CSS transitions exist
 - **Dropdowns in modals:** check if items overflow beyond modal boundary (see Techniques)
-- **Scrollable containers:** always verify ALL items via JS count
 
 ### 5.7 Responsive audit (if specified in Phase 0)
 - `resize_window(width=BREAKPOINT, height=HEIGHT, tabId=TAB_ID)` per breakpoint
@@ -260,7 +253,6 @@ Compare against Component Registry from Phase 4: same component on different pag
 |------|------|
 | **Imperceptible color** | Per-channel decimal difference <= 3 (each R,G,B in 0-255) -> dismiss |
 | **Standard UX pattern** | Dropdown trigger bold, options regular -> by design |
-| **Duplicate** | Same systemic issue -> remove, reference systemic |
 | **Matches production** | Production has same value -> likely intentional |
 
 **Color threshold detail:** Compare R, G, B independently as decimals (0-255). Example: `#8B9DAD` vs `#8996A3` — R: 139 vs 137 (2), G: 157 vs 150 (7), B: 173 vs 163 (10) — G and B exceed 3, this IS a bug. Also compare alpha separately.
@@ -371,28 +363,9 @@ Take `computer` (screenshot) for every visually evident bug. For hover states: h
 
 ## CSS Measurement Techniques
 
-### RGB/RGBA to Hex conversion
-
-`getComputedStyle` returns colors as `rgb()`/`rgba()`. Convert for comparison:
-
-```javascript
-function rgbToHex(val) {
-  if (!val || val === 'transparent') return 'transparent';
-  if (!val.startsWith('rgb')) return val; // pass through hsl(), oklch(), color() as-is
-  const match = val.match(/[\d.]+/g);
-  if (!match || match.length < 3) return val;
-  const [r, g, b] = match.map(Number);
-  const hex = '#' + [r, g, b].map(x => Math.round(x).toString(16).padStart(2, '0')).join('').toUpperCase();
-  const alpha = match.length >= 4 ? parseFloat(match[3]) : 1;
-  return alpha < 1 ? hex + ' (alpha: ' + alpha + ')' : hex;
-}
-```
-
-> Most browsers compute colors to `rgb()`/`rgba()` even if source uses `hsl()` or `oklch()`. The guard handles edge cases.
-
 ### Measure elements (primary technique)
 
-Define `rgbToHex` once, then use `measure()` for any number of elements. **Use selectors from `read_page`/`find`** — CSS-in-JS hashed classes (`.sc-bdVTJa`) are unstable; prefer `[data-testid]`, `[role]`, semantic tags:
+Copy-paste template with `rgbToHex` + `measure()`. **Use selectors from `read_page`/`find`** — CSS-in-JS hashed classes are unstable; prefer `[data-testid]`, `[role]`, semantic tags:
 
 ```javascript
 const rgbToHex = (val) => {
@@ -427,8 +400,6 @@ JSON.stringify([
   measure('button[type="submit"]', 'Primary button')
 ])
 ```
-
-> **Notes:** `getComputedStyle()` returns px (even if source uses rem/em). Cache result in `const s` — never call multiple times on same element. `padding`/`margin` shorthand may return empty when sides differ — fallback reads individual sides. `backgroundImage` captures gradients that won't appear in `backgroundColor`.
 
 ### Specialized patterns
 
@@ -481,36 +452,16 @@ Then `read_page` with `ref_id` to drill into subtrees, or `javascript_tool` with
 
 ## Known Gotchas
 
-### Typography & Fonts
-1. **Font-weight 600 vs 700** — visually near-identical. Always check computed value; if brandbook says 700, then 600 is a bug.
-2. **fontFamily comparison** — returns full stack with quotes. Strip: `.split(',')[0].trim().replace(/['"]/g, '')`.
-3. **Font loading (FOUT)** — fonts load async. Check `document.fonts.check('1px "Inter"')` before measuring. Wait via `document.fonts.ready`.
-4. **line-height: normal** — browsers compute as ~1.2x font-size. If brandbook specifies explicit values, `normal` is a deviation (usually low severity).
-5. **Text overflow** — `text-overflow: ellipsis` + `overflow: hidden` clips text. Detect: `el.scrollWidth > el.clientWidth`.
+> Items covered in Phase 5/6 or Techniques are not repeated here. Only unique edge cases.
 
-### Colors & Visual
-6. **Colors close but wrong** — dismiss only when ALL R,G,B channels differ by <= 3 (decimal 0-255). Compare alpha separately.
-7. **SVG currentColor** — `fill="currentColor"` inherits parent's CSS `color`. Measure parent instead.
-8. **CSS custom properties** — correct computed values may use wrong variable references. Check both when possible.
-
-### Interactive Elements
-9. **Dropdown trigger vs options** — trigger may be bold, options regular. Standard UX — don't flag unless brandbook specifies otherwise.
-10. **Modal dropdown overflow** — `position: absolute` dropdown inside `overflow: hidden` modal -> items invisible. Always check `dropdown.bottom > modal.bottom`.
-11. **Dropdown item count** — never trust visible count. Containers often have `maxHeight` + `overflow: auto`. Always count via JS.
-12. **CSS transitions** — wait (`computer` wait, duration: 1) after hover/click before measuring to avoid intermediate values.
-
-### DOM & Rendering
-13. **SVG className** — returns `SVGAnimatedString`, not string. Use `el.getAttribute('class')` when iterating.
-14. **Shadow DOM** — `querySelector` can't pierce shadow roots. Use `el.shadowRoot.querySelector('inner')` (only works for `mode: "open"`; `mode: "closed"` is inaccessible). Check: `el.shadowRoot !== null`.
-15. **Canvas/WebGL** — elements inside `<canvas>` can't be measured via CSS. Note: "canvas-rendered — not auditable."
-16. **CSS-in-JS hashed classes** — unstable across builds. Prefer: `[data-testid]`, `[role]`, semantic tags, `nth-child`.
-17. **Iframes** — `javascript_tool` operates main frame only. Content inside iframes not measurable.
-
-### Layout & Viewport
-18. **Viewport screenshots** — `computer` (screenshot) captures visible viewport only. Scroll + take multiple for long pages.
-19. **Sticky/fixed elements** — persist across scroll, may overlap content. Audit separately, check z-index.
-20. **padding/margin shorthand** — may return empty when sides differ. Fall back to `paddingTop`/`Right`/`Bottom`/`Left`.
-21. **Production cross-reference** — if production has same "bug", likely intentional. Lower severity or ask user.
+1. **line-height: normal** — browsers compute as ~1.2x font-size. If brandbook specifies explicit values, `normal` is a deviation (usually low severity).
+2. **Text overflow** — `text-overflow: ellipsis` + `overflow: hidden` clips text. Detect: `el.scrollWidth > el.clientWidth`.
+3. **SVG currentColor** — `fill="currentColor"` inherits parent's CSS `color`. Measure parent instead.
+4. **SVG className** — returns `SVGAnimatedString`, not string. Use `el.getAttribute('class')` when iterating.
+5. **Shadow DOM** — `querySelector` can't pierce shadow roots. Use `el.shadowRoot.querySelector('inner')` (only works for `mode: "open"`; `mode: "closed"` is inaccessible).
+6. **Canvas/WebGL** — elements inside `<canvas>` can't be measured via CSS. Note: "canvas-rendered — not auditable."
+7. **Iframes** — `javascript_tool` operates main frame only. Content inside iframes not measurable.
+8. **Sticky/fixed elements** — persist across scroll, may overlap content. Audit separately, check z-index.
 
 ---
 
@@ -535,6 +486,4 @@ Then `read_page` with `ref_id` to drill into subtrees, or `javascript_tool` with
 - Never flag color differences where ALL channels differ by <= 3 (decimal 0-255)
 - Never flag standard UX patterns as bugs without brandbook evidence
 - Never skip a page, dropdown, modal, or interactive state
-- Never duplicate bugs — reference systemic issues instead
-- Never deliver a report without a verification/cleanup pass
 - Never enter passwords or credentials on behalf of the user
