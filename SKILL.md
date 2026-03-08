@@ -12,7 +12,7 @@ license: MIT
 metadata:
   category: technique
   author: maxrihter
-  version: "1.2.0"
+  version: "1.3.0"
   triggers: pixel-perfect, design audit, UI audit, brandbook compliance, design QA, design check, design implementation, check against design, check against brandbook
 ---
 
@@ -138,6 +138,8 @@ Note buttons, inputs, border-radius, padding per variant. If CSS custom properti
 
 > **Units:** `getComputedStyle()` returns **px** even if source uses rem/em/%. If brandbook uses rem: multiply by root font-size (default 16px).
 
+**Normalize all hex values to UPPERCASE** (e.g., `#a684ff` → `#A684FF`). `getComputedStyle()` returns lowercase rgb — the `rgbToHex` helper outputs uppercase. If the brandbook mixes cases, normalize during extraction to avoid false mismatches.
+
 **Keep these tables accessible throughout the entire audit.**
 
 ---
@@ -170,9 +172,19 @@ Navigate the entire site and build an exhaustive map.
 - Page B: default, period dropdown, export modal
 ```
 
+**Lazy-loaded content:** SPA apps may render content on scroll (infinite scroll, virtual lists, lazy sections). Before auditing, scroll the entire page to trigger all lazy loads: `computer` (scroll, direction: down) repeatedly until `document.documentElement.scrollHeight` stabilizes. For virtual lists, the visible items represent all items — measure visible ones only.
+
 For 5+ page sites, maintain a progress log. If context runs low, summarize completed pages before continuing.
 
-**Session handoff:** When splitting across sessions, export: completed pages + bug counts, component registry, systemic issues, design token tables.
+**Session handoff protocol:** When context runs low or splitting across sessions, save a handoff file to `/tmp/pixel-perfect-handoff.md` containing:
+1. **Design tokens** — full color palette + typography scale tables from Phase 2
+2. **Component registry** — from Phase 4 with expected styles
+3. **Completed pages** — list with bug count per page
+4. **Bug list so far** — all bugs in report format (7 columns)
+5. **Systemic issues** — bugs that apply globally
+6. **Remaining pages** — unchecked items from Phase 3 checklist
+
+Start the new session with: *"Continue pixel-perfect audit. Handoff file: /tmp/pixel-perfect-handoff.md"*
 
 ---
 
@@ -214,18 +226,16 @@ Every measurement MUST follow this sequence:
 
 ```javascript
 // MANDATORY: existence check + textContent capture
+const rgbToHex = (v) => { if (!v || !v.startsWith('rgb')) return v; const m = v.match(/[\d.]+/g); return '#' + m.slice(0,3).map(x => (+x).toString(16).padStart(2,'0')).join('').toUpperCase(); };
 const el = document.querySelector(SELECTOR);
-if (!el) { JSON.stringify({ error: 'ELEMENT DOES NOT EXIST', selector: SELECTOR }) }
-else {
-  const s = getComputedStyle(el);
-  JSON.stringify({
+!el ? JSON.stringify({ error: 'ELEMENT DOES NOT EXIST', selector: SELECTOR })
+: (() => { const s = getComputedStyle(el); return JSON.stringify({
     exists: true,
     textContent: el.textContent.trim().slice(0, 60),
     visible: el.offsetParent !== null && el.offsetWidth > 0,
     fontSize: s.fontSize, fontWeight: s.fontWeight,
-    color: rgbToHex(s.color)
-  });
-}
+    color: rgbToHex(s.color), bg: rgbToHex(s.backgroundColor)
+  }); })()
 ```
 
 **If `exists: false` or `visible: false` → the element is NOT on the page. Do NOT log a bug.**
@@ -234,6 +244,8 @@ else {
 
 ### 5.1 Element discovery
 Use `read_page` for the accessibility tree. Use `find` to locate elements by purpose (max 20 per call). Use `computer` (scroll_to) to reach elements below the fold.
+
+**Batch measurements:** Combine 5-10 element measurements into a single `javascript_tool` call using the `measure()` helper array pattern (see CSS Measurement Techniques). This reduces tool calls from ~200 to ~30 for a typical page. Example: `JSON.stringify([measure('#h1','H1'), measure('.btn','CTA'), measure('.card','Card')])`
 
 ### 5.2 Take viewport screenshot
 `computer` (action: screenshot) captures **visible viewport only**. Scroll and take multiple screenshots for long pages. Screenshots live in conversation context — cannot be saved to disk or embedded in Excel.
@@ -418,8 +430,8 @@ wb = openpyxl.Workbook()
 ws = wb.active
 ws.title = 'Pixel-Perfect Audit'
 
-headers = ['N', 'Page/Section', 'Element', 'Issue', 'Category',
-           'Severity', 'Current Value', 'Expected Value', 'Screenshot', 'Route']
+headers = ['Page / Section', 'Element', 'Issue', 'Category',
+           'Severity', 'Current Value', 'Expected Value']
 ws.append(headers)
 
 for cell in ws[1]:
@@ -435,13 +447,13 @@ severity_fills = {
 
 # Bug data — fill from audit results
 bugs = [
-    # [1, 'Page/Section', 'Element', 'Issue', 'Category', 'Severity', 'Current', 'Expected', 'Screenshot desc', 'Route']
+    # ['Page (route) → Section → Element "text"', 'Element', 'Issue', 'Category', 'Severity', 'Current', 'Expected']
 ]
 
 for bug in bugs:
     ws.append(bug)
     row = ws.max_row
-    severity = bug[5]
+    severity = bug[4]
     if severity in severity_fills:
         for cell in ws[row]:
             cell.fill = severity_fills[severity]
@@ -458,14 +470,14 @@ ws2.append(['Reference URL', 'https://...'])  # Replace if applicable
 ws2.append([])
 
 ws2.append(['Severity', 'Count'])
-sev_counts = Counter(bug[5] for bug in bugs)
+sev_counts = Counter(bug[4] for bug in bugs)
 for sev in ['Critical', 'High', 'Medium', 'Low']:
     ws2.append([sev, sev_counts.get(sev, 0)])
 ws2.append(['Total', len(bugs)])
 ws2.append([])
 
 ws2.append(['Category', 'Count'])
-cat_counts = Counter(bug[4] for bug in bugs)
+cat_counts = Counter(bug[3] for bug in bugs)
 for cat, count in cat_counts.most_common():
     ws2.append([cat, count])
 
@@ -475,7 +487,7 @@ print(f'Report saved to {output_path}')
 ```
 
 ### Screenshots
-Take `computer` (screenshot) for every visually evident bug. For hover states: hover first, then immediately screenshot. The Excel "Screenshot" column contains a text description (images live in conversation context only).
+Take `computer` (screenshot) for every visually evident bug. For hover states: hover first, then immediately screenshot. Screenshots live in conversation context only — reference them by description in the Issue column (e.g., "see screenshot: hero section misaligned CTA").
 
 ---
 
@@ -580,6 +592,7 @@ JSON.stringify({ count: small.length, items: small.slice(0, 30) })
 Build a complete set of unique text colors and background colors on the page. Compare against palette in one pass:
 
 ```javascript
+// rgbToHex — reuse from "Measure elements" section above
 const rgbToHex = (val) => { if (!val || val === 'transparent' || !val.startsWith('rgb')) return val; const m = val.match(/[\d.]+/g); if (!m || m.length < 3) return val; return '#' + m.slice(0,3).map(x => Math.round(+x).toString(16).padStart(2,'0')).join('').toUpperCase(); };
 const colors = { text: new Set(), bg: new Set() };
 [...document.querySelectorAll('*')].filter(el => el.offsetParent !== null).forEach(el => {

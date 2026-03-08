@@ -5,8 +5,8 @@
 **Manual design audit skill for Claude Code — verify live web apps against a design system / brandbook**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
-[![Claude Code](https://img.shields.io/badge/Claude_Code-Skill-6B48FF?style=flat-square&logo=anthropic&logoColor=white)](pixel-perfect/SKILL.md)
-[![Version](https://img.shields.io/badge/version-1.2.0-green.svg?style=flat-square)](pixel-perfect/SKILL.md)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-Skill-6B48FF?style=flat-square&logo=anthropic&logoColor=white)](SKILL.md)
+[![Version](https://img.shields.io/badge/version-1.3.0-green.svg?style=flat-square)](SKILL.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](CONTRIBUTING.md)
 
 </div>
@@ -51,7 +51,7 @@ git clone https://github.com/maxrihter/claude-pixel-perfect-agent.git .claude/sk
 
 ```bash
 git clone https://github.com/maxrihter/claude-pixel-perfect-agent.git ~/pixel-perfect-agent
-ln -s ~/pixel-perfect-agent/pixel-perfect ~/.claude/skills/pixel-perfect
+ln -s ~/pixel-perfect-agent ~/.claude/skills/pixel-perfect
 ```
 
 > [!NOTE]
@@ -66,7 +66,7 @@ ln -s ~/pixel-perfect-agent/pixel-perfect ~/.claude/skills/pixel-perfect
 **Verify installation:**
 
 ```bash
-ls ~/.claude/skills/pixel-perfect/pixel-perfect/SKILL.md
+ls ~/.claude/skills/pixel-perfect/SKILL.md
 ```
 
 ---
@@ -99,7 +99,7 @@ ls ~/.claude/skills/pixel-perfect/pixel-perfect/SKILL.md
 
 ## How It Works
 
-The audit runs in **9 phases** (matching [SKILL.md](pixel-perfect/SKILL.md)):
+The audit runs in **9 phases** (matching [SKILL.md](SKILL.md)):
 
 ```
 Phase 0    →  Prerequisites     Collect brandbook URL, target URL, scope, viewport
@@ -129,13 +129,13 @@ The report ends with a summary and verdict:
 
 | Severity | Count |
 |:---|:---|
-| Critical | 0 |
-| High | 12 |
-| Medium | 5 |
-| Low | 2 |
+| Critical | 2 |
+| High | 5 |
+| Medium | 4 |
+| Low | 1 |
 | **Verdict** | **FIX → RE-AUDIT** |
 
-Verdict logic: **SHIP AS-IS** if 0 Critical + 0 High. Otherwise **FIX → RE-AUDIT**.
+Verdict logic: **SHIP AS-IS** if 0 Critical + 0 High. Otherwise **FIX → RE-AUDIT**. See the full [sample report](examples/sample-report.md) for these numbers in context.
 
 ---
 
@@ -207,7 +207,7 @@ Yes. Set the viewport to a mobile size (e.g., 375×812) in your request.
 Per-channel RGB difference of ≤3 is auto-dismissed (e.g., `#8996A3` vs `#8996A4`). Larger deviations are flagged.
 
 **How accurate is the report?**
-v1.2.0 includes an anti-hallucination protocol (DOM existence verification + textContent capture) and a 12-point self-review gate. After Phase 6.5, the report has zero hallucinations, zero duplicates, and zero factual errors. Without these safeguards, expect 10-15% of entries to be duplicates, non-bugs, or misidentified elements.
+v1.3.0 includes an anti-hallucination protocol (DOM existence verification + textContent capture) and a 12-point self-review gate. Phase 6.5 catches the majority of hallucinations, duplicates, and factual errors before delivery. Without these safeguards, expect 10-15% of entries to be duplicates, non-bugs, or misidentified elements.
 
 </details>
 
