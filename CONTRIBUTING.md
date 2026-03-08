@@ -25,8 +25,7 @@ Open an [issue](../../issues) describing:
 5. Submit a PR with a clear description of what changed and why
 
 ### Skill Authoring Guidelines
-- Keep SKILL.md under 600 lines (currently ~540)
-- Follow the [Agent Skills spec](https://agentskills.io)
+- Keep SKILL.md concise — every line should earn its place
 - Maintain YAML frontmatter with `name`, `description`, `license`, `metadata`
 - Every JS snippet must work with Chrome MCP `javascript_tool`
 - Test gotchas against real-world audits before adding

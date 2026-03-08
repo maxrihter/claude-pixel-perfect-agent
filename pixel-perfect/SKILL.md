@@ -11,7 +11,7 @@ description: >
 license: MIT
 metadata:
   category: technique
-  author: anthropic-community
+  author: maxrihter
   version: "1.0.0"
   triggers: pixel-perfect, design audit, UI audit, brandbook compliance, design QA, design check, design implementation, check against design, check against brandbook
 ---
@@ -70,7 +70,7 @@ Every action in this audit maps to a specific Chrome MCP tool. **This skill requ
 
 4. **Scope** — full audit or specific pages/components? For 7+ pages, suggest splitting into sessions
 
-5. **Device targets** — desktop only? Mobile? Responsive breakpoints? Default: desktop 1920x1080
+5. **Device targets** — desktop only? Mobile? Responsive breakpoints? Default: desktop 1440x900
 
 6. **Known exceptions** — any intentional deviations from brandbook?
 

@@ -1,78 +1,97 @@
-<![CDATA[<div align="center">
+<div align="center">
 
 # pixel-perfect-audit
 
 **Manual design audit skill for Claude Code — verify live web apps against a design system / brandbook**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Agent Skill](https://img.shields.io/badge/Claude_Code-Agent_Skill-orange.svg)](https://agentskills.io)
-[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](pixel-perfect/SKILL.md)
-[![Lines](https://img.shields.io/badge/SKILL.md-540_lines-lightgrey.svg)](pixel-perfect/SKILL.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-Skill-6B48FF?style=flat-square&logo=anthropic&logoColor=white)](pixel-perfect/SKILL.md)
+[![Version](https://img.shields.io/badge/version-1.0.0-green.svg?style=flat-square)](pixel-perfect/SKILL.md)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](CONTRIBUTING.md)
 
 </div>
 
 ---
 
-## What It Does
+> Systematically inspects every CSS property of a live web app via Chrome DevTools, compares values against a design system (brandbook), and produces a structured bug report. Catches what automated tools miss.
 
-Systematically inspects every CSS property of a live web application via Chrome DevTools, compares values against a design system (brandbook), and produces a structured bug report. Catches what automated tools miss — wrong `font-weight` (600 vs 700), colors close but off-palette (#8B9DAD vs #8996A3), dropdown overflow bugs, typography outside the type scale.
-
-## Quick Install
-
-```bash
-# Copy the skill to your Claude Code skills directory
-cp -r pixel-perfect ~/.claude/skills/
-```
-
-Claude Code will auto-discover the skill and trigger it when you mention "pixel-perfect", "design audit", "UI audit", or "brandbook compliance".
-
-## Requirements
-
-| Requirement | Why |
-|---|---|
-| **Claude Code** | The skill runs as a Claude Code agent skill |
-| **Chrome MCP extension** | All measurements use Chrome browser automation tools |
-| **Design system / brandbook** | Source of truth — colors, typography, spacing, components |
-| **Target URL** | Live web app or staging environment to audit |
-
-## When to Use
-
-| Use this skill | Don't use this skill |
-|---|---|
-| New build ready for design QA | Automated CI screenshot diffing (use visual regression) |
-| Redesign needs brandbook verification | Functional / behavioral testing (use Playwright) |
-| Checking implementation matches design specs | CSS performance / bundle audit |
-| Finding cross-component inconsistencies | CSS linting or optimization |
-| Pre-launch design sign-off | Just need a single screenshot |
-
-## How It Works
-
-The audit runs in **8 phases**:
-
-```
-Phase 0  →  Setup: get browser tab, navigate to target, set viewport 1440×900
-Phase 1  →  Brandbook: extract colors, typography, spacing from design system
-Phase 2  →  Navigation map: discover all pages/states to audit
-Phase 3  →  Global audit: headers, footers, shared components
-Phase 4  →  Page-by-page audit: measure every element with JS snippets
-Phase 5  →  Cross-page consistency: verify shared components match everywhere
-Phase 6  →  Report: generate structured Excel/Markdown with screenshots
-Phase 7  →  Summary: present severity counts, verdict (SHIP / FIX)
-```
-
-Each element is measured using `getComputedStyle()` — font-size, font-weight, line-height, color, background, padding, margin, border-radius, gap, shadows, opacity. Deviations from the brandbook are logged with severity, screenshot, and reproduction path.
-
-## What It Catches (Real Examples)
+## What It Catches
 
 | Category | Bug | Current | Expected | Severity |
-|---|---|---|---|---|
+|:---|:---|:---|:---|:---|
 | Typography | Wrong font-weight | `600` | `700` (Bold) | High |
 | Typography | Font-size outside type scale | `13px` | `14px` | High |
 | Colors | Off-palette color | `#8B9DAD` | `#8996A3` | High |
 | Colors | Opacity mismatch | `rgba(0,0,0,0.5)` | `rgba(0,0,0,0.64)` | Medium |
-| UX-Bug | Dropdown items hidden on overflow | items cut off | scrollable / visible | Critical |
+| UX-Bug | Dropdown items hidden on overflow | items cut off | scrollable | Critical |
 | Layout | Inconsistent padding | `16px 20px` | `16px 24px` | Medium |
 | Consistency | Button style differs across pages | rounded on /home | square on /settings | High |
+
+> [!TIP]
+> See a full [sample audit report](examples/sample-report.md) with 12 bugs across 3 pages.
+
+---
+
+## Quick Install
+
+```bash
+# One-liner: clone and copy
+git clone https://github.com/maxrihter/pixel-perfect-audit.git && \
+  cp -r pixel-perfect-audit/pixel-perfect ~/.claude/skills/
+```
+
+Claude Code auto-discovers the skill on next session start. Trigger it with:
+
+- *"Run a pixel-perfect audit on staging.example.com against our brandbook"*
+- *"Design audit this page against the design system"*
+- *"Check if the implementation matches the brandbook"*
+
+---
+
+## Requirements
+
+| Requirement | Why |
+|:---|:---|
+| **Claude Code** | The skill runs as a Claude Code agent skill |
+| **Chrome MCP extension** | All measurements use Chrome browser automation tools |
+| **Design system / brandbook** | Source of truth for colors, typography, spacing |
+| **Target URL** | Live web app or staging environment to audit |
+
+> [!IMPORTANT]
+> A brandbook is **required**. Without a design system as the source of truth, there is nothing to compare against — every measurement would be subjective.
+
+---
+
+## When to Use
+
+| Use this skill | Don't use this skill |
+|:---|:---|
+| New build ready for design QA | Automated CI screenshot diffing → use [visual regression](https://github.com/maxrihter/claude-skill-pixel-perfect) |
+| Redesign needs brandbook verification | Functional / behavioral testing → use Playwright |
+| Checking implementation matches design specs | CSS performance / bundle audit |
+| Finding cross-component inconsistencies | CSS linting or code-level optimization |
+| Pre-launch design sign-off | Just need a single screenshot |
+
+---
+
+## How It Works
+
+The audit runs in **8 phases** (matching [SKILL.md](pixel-perfect/SKILL.md)):
+
+```
+Phase 0  →  Prerequisites     Collect brandbook URL, target URL, scope, viewport
+Phase 1  →  Browser Setup     Get tab, navigate, set viewport 1440×900
+Phase 2  →  Token Extraction  Extract colors, typography, spacing from brandbook
+Phase 3  →  Site Discovery    Map all pages, modals, dropdowns, states
+Phase 4  →  Component Group   Build registry of shared components
+Phase 5  →  Systematic Audit  Measure every element with getComputedStyle()
+Phase 6  →  Verification      Cross-page consistency check, cleanup
+Phase 7  →  Documentation     Generate Excel/Markdown report, present verdict
+```
+
+Each element is measured via `getComputedStyle()` — font-size, font-weight, line-height, color, background, padding, margin, border-radius, gap, shadows, opacity. Deviations from the brandbook are logged with severity, screenshot, and reproduction path.
+
+---
 
 ## Output Format
 
@@ -80,85 +99,101 @@ The default output is a **structured Excel file** (`.xlsx`) with columns:
 
 `#` · `Page / Section` · `Element` · `Property` · `Current Value` · `Expected Value` · `Severity` · `Navigation Path` · `Screenshot` · `Notes`
 
-Alternative formats available: Markdown table, CSV, or Notion page.
+Alternative formats: Markdown table, CSV, or Notion page.
 
-The report ends with a summary table:
+The report ends with a summary and verdict:
 
 | Severity | Count |
-|---|---|
+|:---|:---|
 | Critical | 0 |
 | High | 12 |
 | Medium | 5 |
 | Low | 2 |
 | **Verdict** | **FIX → RE-AUDIT** |
 
+Verdict logic: **SHIP AS-IS** if 0 Critical + 0 High. Otherwise **FIX → RE-AUDIT**.
+
+---
+
 ## Configuration
 
-The skill auto-configures based on your request. You can customize:
+| Option | Default | Notes |
+|:---|:---|:---|
+| Output format | Excel (`.xlsx`) | Also supports Markdown, CSV, Notion |
+| Language | User's preferred | Report outputs in any language |
+| Viewport | 1440 × 900 | Adjustable for responsive audits (e.g., 375×812 for mobile) |
+| Color tolerance | ≤3 per RGB channel | `#8996A3` vs `#8996A4` = auto-dismissed |
+| Severity levels | Critical / High / Medium / Low | Critical = functional bugs, Low = nitpicks |
 
-- **Output format** — ask for Excel (default), Markdown, CSV, or Notion
-- **Language** — report outputs in your preferred language
-- **Viewport** — default 1440×900, adjustable for responsive audits
-- **Severity thresholds** — built-in: Critical (functional bugs), High (visible deviations), Medium (minor mismatches), Low (nitpicks)
-- **Color tolerance** — per-channel RGB difference ≤3 is auto-dismissed
+---
 
-## Phases in Detail
+<details>
+<summary><strong>Phases in Detail</strong></summary>
 
-### Phase 0 — Setup
-Get browser tab via `tabs_context_mcp`, navigate to target URL, set viewport to 1440×900 (or custom). Confirm page loads correctly.
+### Phase 0 — Prerequisites
+Collect inputs: brandbook URL, target URL, audit scope (full site or specific pages), device targets. Default viewport: 1440×900.
 
-### Phase 1 — Brandbook Extraction
-Open the design system URL/document. Extract the canonical palette (hex values), typography scale (font-family, sizes, weights, line-heights), spacing system, border-radius values, and shadow definitions.
+### Phase 1 — Browser Setup
+Get browser tab via `tabs_context_mcp`, navigate to target URL, set viewport size. Confirm page loads correctly.
 
-### Phase 2 — Navigation Map
+### Phase 2 — Design Token Extraction
+Open the design system. Extract canonical palette (hex values), typography scale (font-family, sizes, weights, line-heights), spacing system, border-radius values, shadow definitions.
+
+### Phase 3 — Site Discovery & Navigation Map
 Discover all pages and interactive states. Build a checklist: main pages, modals, dropdowns, hover states, empty states, error states, loading states.
 
-### Phase 3 — Global Audit
-Measure shared components — header, footer, sidebar, navigation. These appear on every page, so deviations here multiply.
+### Phase 4 — Component Grouping
+Build a registry of shared components (buttons, cards, inputs, headers, footers). Map which components appear on which pages — deviations here multiply.
 
-### Phase 4 — Page-by-Page Audit
-For each page: screenshot → measure every visible element → compare against brandbook → log deviations. Uses batch JS snippets to measure multiple elements in one call.
+### Phase 5 — Systematic Audit
+For each page: screenshot → measure every visible element via batch JS snippets → compare against brandbook → log deviations with severity and navigation path.
 
-### Phase 5 — Cross-Page Consistency
-Compare the same component across different pages. A button on `/home` should match the button on `/settings`.
+### Phase 6 — Verification & Cleanup
+Cross-page consistency: compare the same component across different pages. A button on `/home` should match the button on `/settings`. Deduplicate systemic issues.
 
-### Phase 6 — Report Generation
-Compile all findings into the chosen format. Attach screenshots with annotations. Sort by severity.
+### Phase 7 — Documentation
+Compile all findings into the chosen format. Attach screenshots. Sort by severity. Present summary with verdict.
 
-### Phase 7 — Summary & Verdict
-Present totals. Verdict logic:
-- **SHIP AS-IS** — 0 Critical, 0 High
-- **FIX → RE-AUDIT** — any Critical or High bugs remain
+</details>
 
-## FAQ
+---
+
+<details>
+<summary><strong>FAQ</strong></summary>
 
 **Can I use this without a brandbook?**
-No. The brandbook is the source of truth. Without it, there's nothing to compare against — every measurement would be subjective.
+No. The brandbook is the source of truth. Without it, there's nothing objective to compare against.
 
 **How long does a full audit take?**
-Depends on the number of pages and components. A typical 5-page app takes 15-30 minutes. Complex apps with many states can take longer.
+Depends on site complexity. Plan ~5-10 min per page. A typical 5-page app takes 20-40 minutes including report generation.
 
 **Does it work with dark mode?**
 Yes. Audit each theme separately — switch themes via the app's toggle, then measure. The brandbook should define both light and dark palettes.
 
 **What browsers does it support?**
-Chrome only — the skill uses Chrome MCP browser extension for all measurements.
+Chrome only — the skill requires the Chrome MCP browser extension.
 
 **Can I audit mobile layouts?**
-Yes. Set the viewport to a mobile size (e.g., 375×812) in your request. The skill will measure at that viewport.
+Yes. Set the viewport to a mobile size (e.g., 375×812) in your request.
 
 **What's the color tolerance?**
 Per-channel RGB difference of ≤3 is auto-dismissed (e.g., `#8996A3` vs `#8996A4`). Larger deviations are flagged.
 
+</details>
+
+---
+
 ## See Also
 
-| Skill | Purpose |
-|---|---|
-| **[pixel-perfect-audit](https://github.com/maxrihter/pixel-perfect-audit)** (this repo) | Manual design audit — verify live site matches brandbook |
-| **[claude-skill-pixel-perfect](https://github.com/maxrihter/claude-skill-pixel-perfect)** | Automated visual regression — Playwright screenshot diffing against a baseline |
+| | This skill (design audit) | [visual regression](https://github.com/maxrihter/claude-skill-pixel-perfect) |
+|:---|:---|:---|
+| **Purpose** | Verify implementation matches design specs | Catch unintended visual changes after code updates |
+| **How** | Manual CSS inspection via Chrome MCP | Automated Playwright screenshot diffing |
+| **Input** | Design system / brandbook | Baseline screenshots |
+| **Output** | Structured bug report (Excel/Markdown) | HTML diff report (pass/fail) |
+| **When** | Pre-launch design QA | CI/CD pipeline, PR checks |
 
-Use **this skill** when you need to check implementation against design specs (colors, typography, spacing).
-Use **visual regression** when you need CI/CD checks that code changes didn't break the UI.
+---
 
 ## Contributing
 
@@ -166,5 +201,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-[MIT](LICENSE) — use it, modify it, share it.
-]]>
+[MIT](LICENSE)
