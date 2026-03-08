@@ -150,6 +150,16 @@ Yes. Set the viewport to a mobile size (e.g., 375×812) in your request. The ski
 **What's the color tolerance?**
 Per-channel RGB difference of ≤3 is auto-dismissed (e.g., `#8996A3` vs `#8996A4`). Larger deviations are flagged.
 
+## See Also
+
+| Skill | Purpose |
+|---|---|
+| **[pixel-perfect-audit](https://github.com/maxrihter/pixel-perfect-audit)** (this repo) | Manual design audit — verify live site matches brandbook |
+| **[claude-skill-pixel-perfect](https://github.com/maxrihter/claude-skill-pixel-perfect)** | Automated visual regression — Playwright screenshot diffing against a baseline |
+
+Use **this skill** when you need to check implementation against design specs (colors, typography, spacing).
+Use **visual regression** when you need CI/CD checks that code changes didn't break the UI.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
