@@ -226,7 +226,7 @@ Every measurement MUST follow this sequence:
 
 ```javascript
 // MANDATORY: existence check + textContent capture
-const rgbToHex = (v) => { if (!v || !v.startsWith('rgb')) return v; const m = v.match(/[\d.]+/g); return '#' + m.slice(0,3).map(x => (+x).toString(16).padStart(2,'0')).join('').toUpperCase(); };
+const rgbToHex = (v) => { if (!v || !v.startsWith('rgb')) return v; const m = v.match(/[\d.]+/g); if (!m || m.length < 3) return v; const hex = '#' + m.slice(0,3).map(x => Math.round(+x).toString(16).padStart(2,'0')).join('').toUpperCase(); const a = m.length >= 4 ? parseFloat(m[3]) : 1; return a < 1 ? hex + ' (a:' + a + ')' : hex; };
 const el = document.querySelector(SELECTOR);
 !el ? JSON.stringify({ error: 'ELEMENT DOES NOT EXIST', selector: SELECTOR })
 : (() => { const s = getComputedStyle(el); return JSON.stringify({
@@ -332,7 +332,7 @@ Duplicate bugs waste developer time and undermine report credibility. Apply thes
 **Allowed categories (strict enum):**
 - `Typography` — font-size, font-weight, line-height, letter-spacing, font-family
 - `Colors` — background, text color, border color, off-palette hex values
-- `Consistency` — same component differs across pages/states
+- `Consistency` — same component differs across pages/states; spacing/radius/sizing deviations from design specs
 - `UX / Bug` — functional issues (overflow, hidden content, broken interactions)
 
 ### Severity classification
@@ -394,14 +394,17 @@ Apply these formats uniformly across ALL bugs. Inconsistency looks unprofessiona
 | **Current Value** (typography) | `{size}px / {weight}` | `13px / 600`, `28px / 700` |
 | **Current Value** (color) | `{hex}` | `#323D47`, `#8B9DAD` |
 | **Current Value** (mixed) | `{size}px / {weight} / {hex}` | `12px / 500 / #A8F4FF` |
+| **Current Value** (typography, line-height) | `{size}px / {line-height}` | `52px / 1.3` |
+| **Current Value** (typography, weight only) | `{weight}` | `600`, `700` |
 | **Current Value** (spacing) | `{value}px` or `{top} {right} {bottom} {left}` | `16px 20px`, `12px` |
+| **Current Value** (UX / Bug) | descriptive text (exempt from CSS-notation rule) | `10 items, last 3 hidden (no scroll)`, `modal overflows 48px` |
 | **Expected Value** | value + brandbook term | `15px SubText`, `#A684FF (Purple)`, `18px / 500 (Btn)` |
 | **Page / Section** | `Page (route) → Section → Element "text"` | `Products (/products) → Data table → Column header "Price"`, `Settings (/settings) → Edit project modal → Input "Project name"` |
 
-**Never use:** CSS property notation in Current Value (e.g., `font-weight: 600`), verbose `fontWeight 600`, or inconsistent slash spacing.
+**Never use:** CSS property notation in Current Value (e.g., `font-weight: 600`), verbose `fontWeight 600`, or inconsistent slash spacing. Exception: UX / Bug category uses descriptive text (see format table above).
 
 **Navigation path rules:**
-- MINIMUM 3 levels: Page (with URL/route) → Section/Area → Specific element with quoted text
+- MINIMUM 3 levels: Page (with URL/route) → Section/Area → Specific element with quoted text. Exception: global systemic bugs may use `Global (all pages)` with element class instead of 3-level path
 - Include the URL path or route (e.g., `/products`, `/settings`) in the Page level
 - Quote the element's visible text: `Button "Submit"`, `Header "Overview"`, `Tab "Analytics"`
 - For modal/dropdown bugs: include the trigger: `Settings → "Edit project" modal → Input "Discount"`
@@ -652,7 +655,7 @@ Then `read_page` with `ref_id` to drill into subtrees, or `javascript_tool` with
 - Run Phase 6.5 Self-Review before EVERY report delivery
 - Cross-reference EVERY "off-palette" color against the FULL palette before flagging
 - Verify Current Value ≠ Expected Value for every bug
-- Use exactly one allowed category per bug (Typography / Colors / Consistency / UX Bug)
+- Use exactly one allowed category per bug (Typography / Colors / Consistency / UX / Bug)
 - Check `el.offsetParent !== null` when multiple DOM elements match a selector
 - Verify DOM existence (`document.querySelector(sel) !== null`) before logging ANY bug
 - Capture `textContent` with every measurement to prove the correct element was measured
@@ -672,5 +675,5 @@ Then `read_page` with `ref_id` to drill into subtrees, or `javascript_tool` with
 - Never search for visually-displayed text when `text-transform` is applied — search original DOM text
 - Never log a bug for an element you cannot find in the DOM — if `querySelector` returns null, it does not exist
 - Never flag different visual treatments for different categories/types/roles as "inconsistency" without explicit brandbook evidence
-- Never write a navigation path with fewer than 3 levels or without the element's visible text
+- Never write a navigation path with fewer than 3 levels or without the element's visible text (exception: global systemic bugs)
 - Never report a measurement without capturing the element's textContent alongside it

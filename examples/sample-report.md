@@ -18,7 +18,7 @@
 | Home (/) → Hero section → Button "Get Started" | CTA button | border-radius 6px instead of 8px per button spec | Consistency | Medium | 6px | 8px |
 | Dashboard (/dashboard) → Left sidebar → Nav link "Analytics" | Sidebar nav items | font-size 13px below 14px minimum for interactive elements | Typography | High | 13px / 500 | 14px / 500 |
 | Dashboard (/dashboard) → Stats row → Card "Revenue" | Stats card | padding 16px 20px — horizontal padding should be 24px per card spec | Consistency | Medium | 16px 20px | 16px 24px |
-| Dashboard (/dashboard) → Filter bar → Dropdown "Period" → Open → Scroll down | Dropdown menu | Items below 7th hidden due to overflow:hidden on container. Users cannot select last 3 items | UX / Bug | Critical | overflow: hidden, 10 items | overflow-y: auto, max-height: 300px |
+| Dashboard (/dashboard) → Filter bar → Dropdown "Period" → Open → Scroll down | Dropdown menu | Items below 7th hidden due to overflow:hidden on container. Users cannot select last 3 items | UX / Bug | Critical | 10 items, last 3 hidden (no scroll) | scrollable container, all items accessible |
 | Settings (/settings) → Account section → Heading "Account" | Section heading | color #8B9DAD not in palette. R:139→137(2), G:157→150(7), B:173→163(10) — G,B exceed 3 | Colors | High | #8B9DAD | #8996A3 (Secondary Text) |
 | Settings (/settings) → Bottom actions → Button "Save Changes" | Save button | font-weight 600 instead of 700 — buttons use same incorrect weight as headings (separate element class) | Typography | High | 15px / 600 | 15px / 700 (Bold) |
 | Settings (/settings) → Form → Input "Email" → Default state | Input field | border-color #CBD5E0 not in palette, expected #D1D5DB (Border) | Colors | Low | #CBD5E0 | #D1D5DB (Border) |
