@@ -1,6 +1,6 @@
 <div align="center">
 
-# pixel-perfect-audit
+# claude-pixel-perfect-agent
 
 **Manual design audit skill for Claude Code — verify live web apps against a design system / brandbook**
 
@@ -36,8 +36,8 @@
 
 ```bash
 # One-liner: clone and copy
-git clone https://github.com/maxrihter/pixel-perfect-audit.git && \
-  cp -r pixel-perfect-audit/pixel-perfect ~/.claude/skills/
+git clone https://github.com/maxrihter/claude-pixel-perfect-agent.git && \
+  cp -r claude-pixel-perfect-agent/pixel-perfect ~/.claude/skills/
 ```
 
 Claude Code auto-discovers the skill on next session start. Trigger it with:
@@ -66,7 +66,7 @@ Claude Code auto-discovers the skill on next session start. Trigger it with:
 
 | Use this skill | Don't use this skill |
 |:---|:---|
-| New build ready for design QA | Automated CI screenshot diffing → use [visual regression](https://github.com/maxrihter/claude-skill-pixel-perfect) |
+| New build ready for design QA | Automated CI screenshot diffing → use [visual regression](https://github.com/maxrihter/claude-skill-visual-regression) |
 | Redesign needs brandbook verification | Functional / behavioral testing → use Playwright |
 | Checking implementation matches design specs | CSS performance / bundle audit |
 | Finding cross-component inconsistencies | CSS linting or code-level optimization |
@@ -185,7 +185,7 @@ Per-channel RGB difference of ≤3 is auto-dismissed (e.g., `#8996A3` vs `#8996A
 
 ## See Also
 
-| | This skill (design audit) | [visual regression](https://github.com/maxrihter/claude-skill-pixel-perfect) |
+| | This skill (design audit) | [visual regression](https://github.com/maxrihter/claude-skill-visual-regression) |
 |:---|:---|:---|
 | **Purpose** | Verify implementation matches design specs | Catch unintended visual changes after code updates |
 | **How** | Manual CSS inspection via Chrome MCP | Automated Playwright screenshot diffing |

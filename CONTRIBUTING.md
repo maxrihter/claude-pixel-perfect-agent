@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in improving pixel-perfect-audit!
+Thanks for your interest in improving claude-pixel-perfect-agent!
 
 ## How to Contribute
 
