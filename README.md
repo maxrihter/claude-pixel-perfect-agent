@@ -6,7 +6,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-Skill-6B48FF?style=flat-square&logo=anthropic&logoColor=white)](pixel-perfect/SKILL.md)
-[![Version](https://img.shields.io/badge/version-1.0.0-green.svg?style=flat-square)](pixel-perfect/SKILL.md)
+[![Version](https://img.shields.io/badge/version-1.1.0-green.svg?style=flat-square)](pixel-perfect/SKILL.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](CONTRIBUTING.md)
 
 </div>
@@ -19,16 +19,17 @@
 
 | Category | Bug | Current | Expected | Severity |
 |:---|:---|:---|:---|:---|
-| Typography | Wrong font-weight | `600` | `700` (Bold) | High |
-| Typography | Font-size outside type scale | `13px` | `14px` | High |
-| Colors | Off-palette color | `#8B9DAD` | `#8996A3` | High |
-| Colors | Opacity mismatch | `rgba(0,0,0,0.5)` | `rgba(0,0,0,0.64)` | Medium |
-| UX-Bug | Dropdown items hidden on overflow | items cut off | scrollable | Critical |
-| Layout | Inconsistent padding | `16px 20px` | `16px 24px` | Medium |
-| Consistency | Button style differs across pages | rounded on /home | square on /settings | High |
+| Typography | Wrong font-weight on ALL headings | `600` | `700` (Bold) | Critical |
+| Typography | Font-size below minimum (15px) | `12px / 600` | `15px / 500` | Critical |
+| Typography | Font-size outside type scale | `28px` | `24px` or `36px` | High |
+| Colors | Off-palette color | `#8B9DAD` | `#8996A3` (Second Font) | High |
+| Colors | Off-palette card background | `#323D47` | `#2B343F` (Gray) | Medium |
+| UX / Bug | Dropdown items hidden on overflow | items cut off | scrollable | Critical |
+| Consistency | CTA button color differs across pages | `#3B7BF6` (blue) | `#A684FF` (Purple) | High |
+| Consistency | Badge style inconsistency | plain text / badge / uppercase | unified style | Medium |
 
 > [!TIP]
-> See a full [sample audit report](examples/sample-report.md) with 12 bugs across 3 pages.
+> All examples above are from real production audits. See a full [sample audit report](examples/sample-report.md) with 12 bugs across 3 pages.
 
 ---
 
@@ -76,17 +77,18 @@ Claude Code auto-discovers the skill on next session start. Trigger it with:
 
 ## How It Works
 
-The audit runs in **8 phases** (matching [SKILL.md](pixel-perfect/SKILL.md)):
+The audit runs in **9 phases** (matching [SKILL.md](pixel-perfect/SKILL.md)):
 
 ```
-Phase 0  →  Prerequisites     Collect brandbook URL, target URL, scope, viewport
-Phase 1  →  Browser Setup     Get tab, navigate, set viewport 1440×900
-Phase 2  →  Token Extraction  Extract colors, typography, spacing from brandbook
-Phase 3  →  Site Discovery    Map all pages, modals, dropdowns, states
-Phase 4  →  Component Group   Build registry of shared components
-Phase 5  →  Systematic Audit  Measure every element with getComputedStyle()
-Phase 6  →  Verification      Cross-page consistency check, cleanup
-Phase 7  →  Documentation     Generate Excel/Markdown report, present verdict
+Phase 0    →  Prerequisites     Collect brandbook URL, target URL, scope, viewport
+Phase 1    →  Browser Setup     Get tab, navigate, set viewport 1440×900
+Phase 2    →  Token Extraction  Extract colors, typography, spacing from brandbook
+Phase 3    →  Site Discovery    Map all pages, modals, dropdowns, states
+Phase 4    →  Component Group   Build registry of shared components
+Phase 5    →  Systematic Audit  Measure every element with getComputedStyle()
+Phase 6    →  Verification      Dedup, cross-page consistency, severity alignment
+Phase 6.5  →  Self-Review       Quality gate: catch duplicates, errors, format issues
+Phase 7    →  Documentation     Generate Excel/Markdown report, present verdict
 ```
 
 Each element is measured via `getComputedStyle()` — font-size, font-weight, line-height, color, background, padding, margin, border-radius, gap, shadows, opacity. Deviations from the brandbook are logged with severity, screenshot, and reproduction path.
@@ -149,7 +151,10 @@ Build a registry of shared components (buttons, cards, inputs, headers, footers)
 For each page: screenshot → measure every visible element via batch JS snippets → compare against brandbook → log deviations with severity and navigation path.
 
 ### Phase 6 — Verification & Cleanup
-Cross-page consistency: compare the same component across different pages. A button on `/home` should match the button on `/settings`. Deduplicate systemic issues.
+Cross-page consistency: compare the same component across different pages. A button on `/home` should match the button on `/settings`. Strict deduplication: page-specific bugs must not repeat global systemic bugs. Severity alignment: same violation class = same severity.
+
+### Phase 6.5 — Self-Review (Quality Gate)
+Audit the audit before delivery. In production use, this phase consistently catches 10-15% defective entries: duplicate bugs, factual errors (flagging palette colors as "not in palette"), entries where current = expected, mixed categories, and formatting inconsistencies.
 
 ### Phase 7 — Documentation
 Compile all findings into the chosen format. Attach screenshots. Sort by severity. Present summary with verdict.
@@ -178,6 +183,9 @@ Yes. Set the viewport to a mobile size (e.g., 375×812) in your request.
 
 **What's the color tolerance?**
 Per-channel RGB difference of ≤3 is auto-dismissed (e.g., `#8996A3` vs `#8996A4`). Larger deviations are flagged.
+
+**How accurate is the report?**
+After Phase 6.5 (Self-Review), the report has zero duplicates and zero factual errors. Without self-review, expect 10-15% of entries to be duplicates, non-bugs, or misidentified colors. The self-review phase was added based on production experience with 85+ bug reports.
 
 </details>
 

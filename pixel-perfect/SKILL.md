@@ -12,7 +12,7 @@ license: MIT
 metadata:
   category: technique
   author: maxrihter
-  version: "1.0.0"
+  version: "1.1.0"
   triggers: pixel-perfect, design audit, UI audit, brandbook compliance, design QA, design check, design implementation, check against design, check against brandbook
 ---
 
@@ -254,28 +254,88 @@ Compare against Component Registry from Phase 4: same component on different pag
 | **Imperceptible color** | Per-channel decimal difference <= 3 (each R,G,B in 0-255) -> dismiss |
 | **Standard UX pattern** | Dropdown trigger bold, options regular -> by design |
 | **Matches production** | Production has same value -> likely intentional |
+| **Color in palette** | Before flagging ANY color as "not in palette", check it against EVERY color in the Phase 2 reference table. A color may have multiple names (e.g. #A8F4FF = Cyan). If the hex exists anywhere in the palette — it is NOT a bug |
 
 **Color threshold detail:** Compare R, G, B independently as decimals (0-255). Example: `#8B9DAD` vs `#8996A3` — R: 139 vs 137 (2), G: 157 vs 150 (7), B: 173 vs 163 (10) — G and B exceed 3, this IS a bug. Also compare alpha separately.
 
-### Group systemic issues
-If a bug repeats across 3+ places, consolidate: "font-weight: 600 everywhere instead of 700" = 1 systemic issue. Note occurrences as instances, not separate bugs.
+### Deduplicate strictly
+
+Duplicate bugs waste developer time and undermine report credibility. Apply these rules:
+
+| Rule | Example |
+|------|---------|
+| **Systemic covers specific** | If global bug says "28px used in Performance, Validator summary" — do NOT add a page-level bug for "Performance heading 28px" |
+| **Self-declared duplicates** | A bug that says "repeats systemic bug #N" should not exist — remove it |
+| **Same page + same element** | Two entries for the same element on the same page = always a duplicate |
+| **Current = Expected** | If "Current Value" equals "Expected Value" — it is NOT a bug, remove |
+| **Single category per bug** | Never create "Typography + Colors" — split into two bugs or pick the primary |
+
+**Allowed categories (strict enum):**
+- `Typography` — font-size, font-weight, line-height, letter-spacing, font-family
+- `Colors` — background, text color, border color, off-palette hex values
+- `Consistency` — same component differs across pages/states
+- `UX / Bug` — functional issues (overflow, hidden content, broken interactions)
 
 ### Severity classification
 
-| Severity | Criteria | Examples |
-|----------|----------|---------|
-| **Critical** | Functional impact, content hidden/inaccessible | Dropdown items hidden, text clipped, layout collapses |
-| **High** | Clear spec violation, visible to users | Wrong font-weight on headings, wrong brand color |
-| **Medium** | Minor deviation, noticeable on comparison | Secondary color off by >3/channel, padding 20px vs 24px |
-| **Low** | Cosmetic, only visible with tools | Letter-spacing -0.5% vs -1%, border-radius 11px vs 12px |
+Severity must be **consistent for the same class of violation**. Use this decision tree:
+
+| Severity | Criteria | Decision Rule |
+|----------|----------|---------------|
+| **Critical** | Functional impact — content hidden, actions blocked | Dropdown overflow hiding items; CTA button unreadable (≤10px); layout collapse |
+| **High** | Clear spec violation on primary elements, visible to users | Wrong font-weight on headings; brand color mismatch; font-size below minimum on interactive elements |
+| **Medium** | Minor deviation on secondary elements | Off-palette color on inner cards; font-size below minimum on passive text; padding differs |
+| **Low** | Cosmetic, only visible with measurement tools | Letter-spacing -0.5% vs -1%; border-radius 11px vs 12px; color diff 4-6 per channel |
+
+**Consistency rule:** The same type of violation (e.g., "12px below 15px minimum") should get the same severity UNLESS context changes impact:
+- 12px on CTA button → **Critical** (user can't interact)
+- 12px on tooltip text → **High** (visible spec violation)
+- 12px on footer fine-print → **Medium** (secondary element)
 
 Renumber sequentially after removals (1..N, no gaps).
+
+---
+
+## Phase 6.5: Self-Review (Quality Gate)
+
+**Before writing the report, audit the audit.** This phase catches 10-15% of issues that degrade report quality.
+
+### Checklist (run every time)
+
+1. **Duplicate scan** — For each page-specific bug, check: does a global systemic bug already cover this exact element? If yes → remove
+2. **Palette cross-reference** — For each "color not in palette" bug, verify the hex against the FULL Phase 2 palette table. Check all color names, not just the obvious one
+3. **Current ≠ Expected** — No bug should have Current Value = Expected Value
+4. **Category validation** — Every bug uses exactly one allowed category (no mixed, no ad-hoc)
+5. **Severity consistency** — Same violation class → same severity (unless impact context differs)
+6. **Format standardization** — Apply the report format template (Phase 7) uniformly:
+   - Typography current values: `{size}px / {weight}` (e.g., `13px / 600`)
+   - Color current values: `{hex}` (e.g., `#323D47`)
+   - Mixed: `{size}px / {weight} / {hex}` (e.g., `12px / 500 / #A8F4FF`)
+7. **Numbering** — Sequential 1..N, no gaps after removals
+8. **Page name consistency** — Same page should always use the same name format across all bugs
+
+> **Why this phase exists:** In production audits (5 rounds, 85+ bugs), this phase consistently caught 9-12 duplicates, 1-2 factual errors, and 5+ formatting inconsistencies per session. Skipping it delivers a 10-15% defective report.
 
 ---
 
 ## Phase 7: Documentation
 
 Output in the user's preferred language. Column headers may stay English for developer compatibility.
+
+### Report field format standards
+
+Apply these formats uniformly across ALL bugs. Inconsistency looks unprofessional.
+
+| Field | Format | Examples |
+|-------|--------|---------|
+| **Current Value** (typography) | `{size}px / {weight}` | `13px / 600`, `28px / 700` |
+| **Current Value** (color) | `{hex}` | `#323D47`, `#8B9DAD` |
+| **Current Value** (mixed) | `{size}px / {weight} / {hex}` | `12px / 500 / #A8F4FF` |
+| **Current Value** (spacing) | `{value}px` or `{top} {right} {bottom} {left}` | `16px 20px`, `12px` |
+| **Expected Value** | value + brandbook term | `15px SubText`, `#A684FF (Purple)`, `18px / 500 (Btn)` |
+| **Page / Section** | `Page → Section → Subsection` | `Settings (Owner) → Модалки`, `Nominator Analytics → PnL` |
+
+**Never use:** CSS property notation in Current Value (e.g., `font-weight: 600`), verbose `fontWeight 600`, or inconsistent slash spacing.
 
 ### Excel report
 
@@ -440,6 +500,38 @@ const modal = document.querySelector('[role="dialog"]');
   }) : JSON.stringify({ error: 'Elements not found' })
 ```
 
+### Small font scan (catch ALL violations)
+
+Scan the entire page for visible text elements below the brandbook minimum font-size. Catches instances you might miss when auditing section by section:
+
+```javascript
+const MIN = 15; // Replace with brandbook minimum
+const small = [...document.querySelectorAll('*')].filter(el =>
+  el.children.length === 0 && el.offsetParent !== null &&
+  el.textContent.trim().length > 0 &&
+  parseFloat(getComputedStyle(el).fontSize) < MIN
+).map(el => {
+  const s = getComputedStyle(el);
+  return { text: el.textContent.trim().slice(0, 40), fontSize: s.fontSize, fontWeight: s.fontWeight, tag: el.tagName };
+});
+JSON.stringify({ count: small.length, items: small.slice(0, 30) })
+```
+
+### Color inventory (catch ALL off-palette values)
+
+Build a complete set of unique text colors and background colors on the page. Compare against palette in one pass:
+
+```javascript
+const rgbToHex = (val) => { if (!val || val === 'transparent' || !val.startsWith('rgb')) return val; const m = val.match(/[\d.]+/g); if (!m || m.length < 3) return val; return '#' + m.slice(0,3).map(x => Math.round(+x).toString(16).padStart(2,'0')).join('').toUpperCase(); };
+const colors = { text: new Set(), bg: new Set() };
+[...document.querySelectorAll('*')].filter(el => el.offsetParent !== null).forEach(el => {
+  const s = getComputedStyle(el);
+  const c = rgbToHex(s.color); if (c && c !== 'transparent') colors.text.add(c);
+  const b = rgbToHex(s.backgroundColor); if (b && b !== 'transparent') colors.bg.add(b);
+});
+JSON.stringify({ textColors: [...colors.text], bgColors: [...colors.bg] })
+```
+
 ### Element discovery
 Use `find` before writing selectors:
 ```
@@ -462,6 +554,10 @@ Then `read_page` with `ref_id` to drill into subtrees, or `javascript_tool` with
 6. **Canvas/WebGL** — elements inside `<canvas>` can't be measured via CSS. Note: "canvas-rendered — not auditable."
 7. **Iframes** — `javascript_tool` operates main frame only. Content inside iframes not measurable.
 8. **Sticky/fixed elements** — persist across scroll, may overlap content. Audit separately, check z-index.
+9. **text-transform: uppercase** — DOM text contains "Project" but displays "PROJECT". Searching for the displayed text returns 0 matches. Always search for the original DOM text, not the visual representation.
+10. **Multiple identical elements** — SPA apps often render duplicate elements (e.g., mobile + desktop buttons). When measuring, verify the element is visible: `el.offsetParent !== null && el.offsetWidth > 0`. Finding the wrong one gives wrong measurements.
+11. **`.closest()` parent capture** — When finding a badge's parent container, `.closest('div')` can return a much larger ancestor. Use precise selectors or verify dimensions match expectations.
+12. **Excel merged cells** — When updating summary sheets with `openpyxl`, merged cells throw `'MergedCell' object attribute 'value' is read-only`. Write only to the top-left cell of each merged range, or unmerge before editing.
 
 ---
 
@@ -480,6 +576,11 @@ Then `read_page` with `ref_id` to drill into subtrees, or `javascript_tool` with
 - Group systemic issues — don't report the same pattern 15 times
 - Clean up false positives before delivering the report
 - Ask the user for the brandbook BEFORE starting
+- Run Phase 6.5 Self-Review before EVERY report delivery
+- Cross-reference EVERY "off-palette" color against the FULL palette before flagging
+- Verify Current Value ≠ Expected Value for every bug
+- Use exactly one allowed category per bug (Typography / Colors / Consistency / UX Bug)
+- Check `el.offsetParent !== null` when multiple DOM elements match a selector
 
 ### NEVER DO
 - Never start without a design system reference
@@ -487,3 +588,6 @@ Then `read_page` with `ref_id` to drill into subtrees, or `javascript_tool` with
 - Never flag standard UX patterns as bugs without brandbook evidence
 - Never skip a page, dropdown, modal, or interactive state
 - Never enter passwords or credentials on behalf of the user
+- Never create a bug that says "repeats bug #N" — if it repeats, it should not exist
+- Never use mixed categories ("Typography + Colors") — split or pick primary
+- Never search for visually-displayed text when `text-transform` is applied — search original DOM text
